@@ -63,4 +63,5 @@ def command_error(error_message: str) -> int:
     return -1
 
 
-main()
+if __name__ == "__main__":
+    raise SystemExit(main()) # returns exit code, allows communication of failure
