@@ -13,10 +13,6 @@ fn main() {
     let command: &str;
     let arg_word: &str;
 
-    // get rid of this l8r
-    println!("{:?}", args);
-    println!("{}", argc);
-
     // Program exits if no command was given
     if argc == 1 {
         command_error("No command given.");
