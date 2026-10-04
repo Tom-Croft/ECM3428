@@ -10,24 +10,20 @@ fn main() {
     // CLI args stored as a Vector to allow array-like operations
     let args: Vec<String> = env::args().collect();
     let argc = args.len();
-    let command: &str;
-    let arg_word: &str;
 
     // Program exits if no command was given
     if argc == 1 {
         command_error("No command given.");
-    }
+    };
 
     // Changes plurality depending on the number of arguments
-    arg_word = if argc == 2 { "was" } else { "were" };
+    let arg_word: &str = if argc == 2 { "was" } else { "were" };
 
     // Initialises the command the user entered and checks if it is within the array of commands
-    if COMMANDS.contains(&args[1].as_str()) {
-        command = args[1].as_str();
-    } else {
-        command = ""; // must initialise 'command' before it is used in the next if-statement or else error
-        command_error(format!("Unknown command {}.", args[1].as_str()).as_str());
-    }
+    let command: &str = args[1].as_str();
+    if !COMMANDS.contains(&command) {
+        command_error(format!("Unknown command {}.", command).as_str());
+    };
 
     // prints help instructions on screen as long as the correct num of args given
     if command == "help" {
@@ -36,7 +32,7 @@ fn main() {
                 format!("Expected 1 argument but {} {} given.", argc - 1, arg_word).as_str(),
             );
         } else {
-            println!("{}", format!("Usage: {} [COMMAND] [ARGUMENTS]", APP_NAME));
+            println!("Usage: {} [COMMAND] [ARGUMENTS]", APP_NAME);
             println!(concat!(
                 "Commands:\n",
                 "   help                        Help about commands.\n",
@@ -50,7 +46,7 @@ fn main() {
     // TODO
     if command == "enc" {
         if argc != 4 {
-            return command_error(
+            command_error(
                 format!("Expected 3 arguments but {} {} given.", argc - 1, arg_word).as_str(),
             );
         } else {
@@ -62,7 +58,7 @@ fn main() {
     // TODO
     if command == "dec" {
         if argc != 4 {
-            return command_error(
+            command_error(
                 format!("Expected 3 arguments but {} {} given.", argc - 1, arg_word).as_str(),
             );
         } else {
@@ -70,15 +66,10 @@ fn main() {
             std::process::exit(0);
         }
     }
-
-    unreachable!("Should be unreachable")
 }
 
 // Function for formatting CLI errors
-fn command_error(error_message: &str) {
-    eprintln!(
-        "{}",
-        format!("Error: {} (Try {} help)", error_message, APP_NAME)
-    );
+fn command_error(error_message: &str) -> ! {
+    eprintln!("Error: {} (Try {} help)", error_message, APP_NAME);
     std::process::exit(1);
 }
