@@ -2,6 +2,7 @@ use std::error::Error;
 use std::fs::File;
 use std::io::prelude::{Read, Write};
 use std::path::Path;
+use std::thread::{JoinHandle, scope, spawn};
 
 /*
 Notes:
@@ -23,8 +24,10 @@ pub fn decode(src: &Path, des: &Path) -> Result<(), Box<dyn Error>> {
 }
 
 fn gen_freq_table(file: &mut File) -> Result<[u32; 258], Box<dyn Error>> {
-    // 8kb buffer
-    let mut buff = [0u8; 8192];
+    const BUFF_SIZE:usize = 1048576; //1 MiB
+    const NO_THREADS:usize = 8;
+
+    let mut buff = [0u8; BUFF_SIZE];
     let mut freq = vec![0u32; 257]; //0-255 = bytes 0x00 to 0xFF; 256 = EoF
     let mut total: usize = 0;
 
@@ -39,11 +42,28 @@ fn gen_freq_table(file: &mut File) -> Result<[u32; 258], Box<dyn Error>> {
             break false;
         }
 
-        
-        buff[0..bytes_read]
-            .iter()
-            .for_each(|byte| freq[*byte as usize] += 1);
-        total += bytes_read;
+        scope(|s| {
+            let handles: Vec<_> = buff[0..bytes_read]
+                .chunks(BUFF_SIZE/NO_THREADS)
+                .map(|chunk| {
+                    s.spawn(move || {
+                        let mut result = vec![0u32; 256];
+                        chunk.iter().for_each(|byte| result[*byte as usize] += 1);
+                        result
+                    })
+                })
+                .collect();
+
+            total += bytes_read;
+            
+            handles.into_iter().for_each(|h| {
+                h.join()
+                    .unwrap()
+                    .iter()
+                    .enumerate()
+                    .for_each(|(i, val)| freq[i] += *val)
+            });
+        });
     };
 
     // Make sure every symbol has atleast 1 in the frequency table as it could occour later in the file if not fully read. Otherwise just add the EoF marker.
