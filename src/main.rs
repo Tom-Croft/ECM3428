@@ -2,7 +2,9 @@ use ecm3428::{decode, encode};
 
 use std::env;
 use std::fs;
+use std::io::Read;
 use std::path::Path;
+use std::io;
 
 const APP_NAME: &str = "APP NAME";
 const COMMANDS: [&str; 3] = ["enc", "dec", "help"];
@@ -60,23 +62,36 @@ fn main() {
             let src: &Path = Path::new(&args[2]);
             let des: &Path = Path::new(&args[3]);
 
-            if !src.exists() {
-                command_error(&format!("Source path to encode does not exist."));
-            };
+            if !src.is_file() {
+                command_error(&format!("Encode src path does not lead to a file."));
+            }
 
-            if !fs::read(src).is_ok() {
-                command_error(&format!("Source path cannot be read."));
+            if fs::read(src).is_err() {
+                command_error(&format!("Encode src path cannot be read."));
             };
 
             if !des.exists() {
-                command_error(&format!("Destination path to encode does not exist."));
+                command_error(&format!("Encode des path does not exist."));
             };
 
-            if !fs::read(des).is_ok() {
-                command_error(&format!("Destination path cannot be read."));
+            // checks to see if directory can be written in
+            if des.is_dir() {
+                let test_file = des.join("write");
+
+                if fs::write(&test_file, "").is_err() {
+                    command_error("Encode des path cannot be written to");
+                }
+
+                // temporary file removed after check
+                fs::remove_file(&test_file).expect("Encode temp writing file could not be removed");
+            } else if des.is_file() {
+                check_des_overwritable();
             };
 
-            let _ = encode(src, des);
+            // checks for errors when encoding
+            if let Err(error) = encode(src, des) {
+                command_error(&format!("Failed to encode file: {}", error));
+            };
         }
     }
 
@@ -93,23 +108,37 @@ fn main() {
             let src: &Path = Path::new(&args[2]);
             let des: &Path = Path::new(&args[3]);
 
-            if !src.exists() {
-                command_error(&format!("Source path to decode does not exist."));
-            };
+            if !src.is_file() {
+                command_error(&format!("Decode src path does not lead to a file."));
+            }
 
-            if !fs::read(src).is_ok() {
-                command_error(&format!("Source path cannot be read."));
+            if fs::read(src).is_err() {
+                command_error(&format!("Decode src path cannot be read."));
             };
 
             if !des.exists() {
-                command_error(&format!("Destination path to decode does not exist."));
+                command_error(&format!("Decode des path does not exist."));
             };
 
-            if !fs::read(des).is_ok() {
-                command_error(&format!("Destination path cannot be read."));
+            // checks to see if directory can be written in
+            if des.is_dir() {
+                let test_file = des.join("write");
+
+                if fs::write(&test_file, "").is_err() {
+                    command_error("Decode des path cannot be written to");
+                }
+
+                // temporary file removed after check
+                fs::remove_file(&test_file).expect("Decode temp writing file could not be removed");
+            } else if des.is_file() {
+                // asks user if destination file can be overwritten
+                check_des_overwritable();
             };
 
-            let _ = decode(src, des);
+            // checks for errors when decoding
+            if let Err(error) = decode(src, des) {
+                command_error(&format!("Failed to decode file: {}", error));
+            };
         }
     }
 }
@@ -118,4 +147,19 @@ fn main() {
 fn command_error(error_message: &str) -> ! {
     eprintln!("Error: {} (Try {} help)", error_message, APP_NAME);
     std::process::exit(1);
+}
+
+fn check_des_overwritable() {
+    println!("The destination path is a file. Would you like to overwrite it? (y/n): ");
+    let mut answer: String = String::new();
+    io::stdin()
+            .read_line(&mut answer)
+            .expect("Could not read input");
+    let ans_low: &str = &answer.trim().to_lowercase();
+
+    if ans_low == "n" || ans_low == "no" {
+        std::process::exit(0);
+    } else if ans_low != "y" && ans_low != "yes" {
+        command_error("Answer given was not recognised");
+    };
 }
