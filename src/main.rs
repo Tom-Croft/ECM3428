@@ -5,6 +5,7 @@ use std::fs;
 use std::io::Read;
 use std::path::Path;
 use std::io;
+use std::io::ErrorKind;
 
 const APP_NAME: &str = "APP NAME";
 const COMMANDS: [&str; 3] = ["enc", "dec", "help"];
@@ -57,41 +58,42 @@ fn main() {
                 argc - 1,
                 arg_word
             ));
-        } else {
-            // checks if filepaths are valid before encoding file
-            let src: &Path = Path::new(&args[2]);
-            let des: &Path = Path::new(&args[3]);
+        };
 
-            if !src.is_file() {
-                command_error(&format!("Encode src path does not lead to a file."));
-            }
+        // checks if filepaths are valid before encoding file
+        let src: &Path = Path::new(&args[2]);
+        let des: &Path = Path::new(&args[3]);
 
-            if fs::read(src).is_err() {
-                command_error(&format!("Encode src path cannot be read."));
-            };
+        if des.is_file() {
+            // asks user if destination file can be overwritten
+            check_des_overwritable();
+        };
 
-            if !des.exists() {
-                command_error(&format!("Encode des path does not exist."));
-            };
-
-            // checks to see if directory can be written in
-            if des.is_dir() {
-                let test_file = des.join("write");
-
-                if fs::write(&test_file, "").is_err() {
-                    command_error("Encode des path cannot be written to");
+        match encode(src, des) {
+            Ok(()) => {}
+            Err(error) => {
+                match error.kind() {
+                    ErrorKind::NotFound => { command_error("File could not be found."); }
+                    ErrorKind::AlreadyExists => { command_error("The destination file already exists."); }
+                    ErrorKind::NotADirectory => { command_error("A directory was expected, but a file was found."); }
+                    ErrorKind::IsADirectory => { command_error("A file was expected, but a directory was found."); }
+                    ErrorKind::ReadOnlyFilesystem => { command_error("The destination filesystem is read-only."); }
+                    ErrorKind::InvalidInput => { command_error("Invalid input was provided for the file operation."); }
+                    ErrorKind::InvalidData => { command_error("The file contains invalid data."); }
+                    ErrorKind::WriteZero => { command_error("The program was unable to write data to the destination."); }
+                    ErrorKind::StorageFull => { command_error("The destination storage is full."); }
+                    ErrorKind::QuotaExceeded => { command_error("The filesystem storage quota has been exceeded."); }
+                    ErrorKind::FileTooLarge => { command_error("The file is too large."); }
+                    ErrorKind::ResourceBusy => { command_error("The file or resource is currently busy."); }
+                    ErrorKind::InvalidFilename => { command_error("The filename is invalid."); }
+                    ErrorKind::Interrupted => { command_error("The file operation was interrupted."); }
+                    ErrorKind::UnexpectedEof => { command_error("The file ended unexpectedly while being read."); }
+                    ErrorKind::OutOfMemory => { command_error("There was not enough memory to complete the operation."); }
+                    ErrorKind::Unsupported => { command_error("This file operation is not supported."); }
+                    ErrorKind::PermissionDenied => { command_error("The file could not be accessed due to its permissions."); }
+                    _ => { command_error(&format!("An I/O error occurred: {}", error)); }
                 }
-
-                // temporary file removed after check
-                fs::remove_file(&test_file).expect("Encode temp writing file could not be removed");
-            } else if des.is_file() {
-                check_des_overwritable();
-            };
-
-            // checks for errors when encoding
-            if let Err(error) = encode(src, des) {
-                command_error(&format!("Failed to encode file: {}", error));
-            };
+            }
         }
     }
 
@@ -103,42 +105,42 @@ fn main() {
                 argc - 1,
                 arg_word
             ));
-        } else {
-            // checks if filepaths are valid before decoding file
-            let src: &Path = Path::new(&args[2]);
-            let des: &Path = Path::new(&args[3]);
+        };
 
-            if !src.is_file() {
-                command_error(&format!("Decode src path does not lead to a file."));
-            }
+        // checks if filepaths are valid before decoding file
+        let src: &Path = Path::new(&args[2]);
+        let des: &Path = Path::new(&args[3]);
 
-            if fs::read(src).is_err() {
-                command_error(&format!("Decode src path cannot be read."));
-            };
+        if des.is_file() {
+            // asks user if destination file can be overwritten
+            check_des_overwritable();
+        };
 
-            if !des.exists() {
-                command_error(&format!("Decode des path does not exist."));
-            };
-
-            // checks to see if directory can be written in
-            if des.is_dir() {
-                let test_file = des.join("write");
-
-                if fs::write(&test_file, "").is_err() {
-                    command_error("Decode des path cannot be written to");
+        match decode(src, des) {
+            Ok(()) => {}
+            Err(error) => {
+                match error.kind() {
+                    ErrorKind::NotFound => { command_error("File could not be found."); }
+                    ErrorKind::AlreadyExists => { command_error("The destination file already exists."); }
+                    ErrorKind::NotADirectory => { command_error("A directory was expected, but a file was found."); }
+                    ErrorKind::IsADirectory => { command_error("A file was expected, but a directory was found."); }
+                    ErrorKind::ReadOnlyFilesystem => { command_error("The destination filesystem is read-only."); }
+                    ErrorKind::InvalidInput => { command_error("Invalid input was provided for the file operation."); }
+                    ErrorKind::InvalidData => { command_error("The file contains invalid data."); }
+                    ErrorKind::WriteZero => { command_error("The program was unable to write data to the destination."); }
+                    ErrorKind::StorageFull => { command_error("The destination storage is full."); }
+                    ErrorKind::QuotaExceeded => { command_error("The filesystem storage quota has been exceeded."); }
+                    ErrorKind::FileTooLarge => { command_error("The file is too large."); }
+                    ErrorKind::ResourceBusy => { command_error("The file or resource is currently busy."); }
+                    ErrorKind::InvalidFilename => { command_error("The filename is invalid."); }
+                    ErrorKind::Interrupted => { command_error("The file operation was interrupted."); }
+                    ErrorKind::UnexpectedEof => { command_error("The file ended unexpectedly while being read."); }
+                    ErrorKind::OutOfMemory => { command_error("There was not enough memory to complete the operation."); }
+                    ErrorKind::Unsupported => { command_error("This file operation is not supported."); }
+                    ErrorKind::PermissionDenied => { command_error("The file could not be accessed due to its permissions."); }
+                    _ => { command_error(&format!("An I/O error occurred: {}", error)); }
                 }
-
-                // temporary file removed after check
-                fs::remove_file(&test_file).expect("Decode temp writing file could not be removed");
-            } else if des.is_file() {
-                // asks user if destination file can be overwritten
-                check_des_overwritable();
-            };
-
-            // checks for errors when decoding
-            if let Err(error) = decode(src, des) {
-                command_error(&format!("Failed to decode file: {}", error));
-            };
+            }
         }
     }
 }
@@ -155,11 +157,19 @@ fn check_des_overwritable() {
     io::stdin()
             .read_line(&mut answer)
             .expect("Could not read input");
-    let ans_low: &str = &answer.trim().to_lowercase();
+    let mut ans_low:String = answer.trim().to_lowercase();
 
-    if ans_low == "n" || ans_low == "no" {
-        std::process::exit(0);
-    } else if ans_low != "y" && ans_low != "yes" {
-        command_error("Answer given was not recognised");
-    };
+    while ans_low != "y" && ans_low != "yes" {
+        if ans_low == "n" || ans_low == "no" {
+            std::process::exit(0);
+        }
+
+        println!("Please either enter 'y' or 'n':");        
+        answer.clear();
+
+        io::stdin()
+            .read_line(&mut answer)
+            .expect("Could not read input");
+        ans_low = answer.trim().to_lowercase();
+    }
 }
