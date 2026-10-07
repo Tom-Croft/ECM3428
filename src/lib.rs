@@ -1,6 +1,7 @@
+use std::fmt::format;
 use std::fs::File;
 use std::io::prelude::{Read, Seek, Write};
-use std::io::{BufWriter, Error, SeekFrom, stdout};
+use std::io::{BufWriter, Error, SeekFrom, stdout, ErrorKind};
 use std::path::Path;
 use std::thread::scope;
 
@@ -9,20 +10,9 @@ const NO_THREADS: usize = 8;
 const VERSION: u8 = 0;
 const MSB: u32 = 0b10000000_00000000_00000000_00000000;
 const SEC_MSB: u32 = 0b01000000_00000000_00000000_00000000;
-//const BYTE1: u32 = 0b11111111_00000000_00000000_00000000;
-/// most significant byte
-//const BYTE2: u32 = 0b00000000_11111111_00000000_00000000;
-/// second most significant byte
-//const BYTE3: u32 = 0b00000000_00000000_11111111_00000000;
-/// third most significant byte
-//const BYTE4: u32 = 0b00000000_00000000_00000000_11111111;
-/// least significant byte
 
-/*
-Notes:
- - Storing frequencies in a vector where indecies 0 - 2^8-1 represent bit patterns for 0 - 2^8-1, then index 2^8 is EoF and 2^8 + 1 is total
- - Each value in the vec is a u32, so stores 0 - 2^32-1. Thus we buffer in up to 2^32-1 bytes to build the vec.
- */
+
+
 pub fn encode(src: &Path, des: &Path) -> Result<(), Error> {
     let mut src_file = File::open(src)?;
 
@@ -93,7 +83,9 @@ pub fn encode(src: &Path, des: &Path) -> Result<(), Error> {
 }
 
 pub fn decode(src: &Path, des: &Path) -> Result<(), Error> {
-    todo!();
+    let mut src_file = File::open(src)?;
+    let cum_freq = get_cum_freq_table(&src_file)?.map(|v|v as u64);
+    Ok(())
 }
 
 struct BitStream {
@@ -254,4 +246,26 @@ fn output_progress(size: u64, bytes_processed: u64) -> Result<(), Error> {
     );
     stdout().flush()?;
     Ok(())
+}
+
+fn get_cum_freq_table(mut file:&File)->Result<[u32; 258], Error>{
+    // Parse version number
+    let mut header = [0u8;258];
+    let bytes_read = file.read(&mut header)?;
+    if bytes_read != 258 {
+        return Err(Error::new(ErrorKind::UnexpectedEof, format!("Expected 258 byte header but reached EoF after {} bytes", bytes_read)));
+    } else if header[0] > VERSION {
+        return Err(Error::new(ErrorKind::Unsupported, format!("File version {} unsupported", header[0])));
+    };
+
+    let mut rtn = [0u32; 258];
+    header[1..].iter().fold(Vec::new(), |mut acc:Vec<u32>, c|{
+        let prev = *acc.last().unwrap_or(&0);
+        acc.push(prev + *c as u32);
+        acc
+    }).iter().enumerate().for_each(|(i, v)|rtn[i] = *v); 
+
+    rtn[257] = rtn[256] + 1;
+
+    Ok(rtn)
 }
