@@ -1,7 +1,6 @@
-use std::error::Error;
 use std::fs::File;
 use std::io::prelude::{Read, Seek, Write};
-use std::io::{BufWriter, SeekFrom};
+use std::io::{BufWriter, Error, SeekFrom, stdout};
 use std::path::Path;
 use std::thread::scope;
 
@@ -24,22 +23,21 @@ Notes:
  - Storing frequencies in a vector where indecies 0 - 2^8-1 represent bit patterns for 0 - 2^8-1, then index 2^8 is EoF and 2^8 + 1 is total
  - Each value in the vec is a u32, so stores 0 - 2^32-1. Thus we buffer in up to 2^32-1 bytes to build the vec.
  */
-pub fn encode(src: &Path, des: &Path) -> Result<(), Box<dyn Error>> {
+pub fn encode(src: &Path, des: &Path) -> Result<(), Error> {
     let mut src_file = File::open(src)?;
 
     println!("Generating Frequnecy Table...");
     let freq = gen_freq_table(&mut src_file)?;
-    let mut cum_freq:Vec<u64> = freq.iter().fold(Vec::new(), |mut acc: Vec<u64>, cur:&u8 | {
+    let mut cum_freq: Vec<u64> = freq.iter().fold(Vec::new(), |mut acc: Vec<u64>, cur: &u8| {
         acc.push(match acc.last() {
             None => *cur as u64,
-            Some(v) => *cur as u64 + *v
+            Some(v) => *cur as u64 + *v,
         });
         acc
     });
     cum_freq.push(cum_freq.last().unwrap() + 1);
 
-
-    println!("Compressing File");
+    println!("Compressing File...");
     let mut out_stream: BitStream = BitStream::new(gen_file(des, freq)?);
 
     let mut low: u32 = 0;
@@ -48,20 +46,28 @@ pub fn encode(src: &Path, des: &Path) -> Result<(), Box<dyn Error>> {
     let mut underflow_count: u64 = 0;
     let mut buff = [0u8; BUFF_SIZE];
 
+    let size = src_file.metadata()?.len();
+    let mut bytes_processed: u64 = 0;
+
     loop {
         let bytes_read = src_file.read(&mut buff)?;
         if bytes_read == 0 {
             break out_stream.finish();
         }
 
+        bytes_processed += bytes_read as u64;
+        output_progress(size, bytes_processed)?;
+
         buff[0..bytes_read]
             .iter()
-            .try_for_each(|byte: &u8| -> Result<(), Box<dyn Error>> {
+            .try_for_each(|byte: &u8| -> Result<(), Error> {
                 range = high - low;
-                high = ((low as u64) + ((range as u64) + 1) * cum_freq[*byte as usize + 1] / cum_freq[257]
+                high = ((low as u64)
+                    + ((range as u64) + 1) * cum_freq[*byte as usize + 1] / cum_freq[257]
                     - 1) as u32;
-                low =
-                    ((low as u64) + ((range as u64) + 1) * cum_freq[*byte as usize] / cum_freq[257]) as u32;
+                low = ((low as u64)
+                    + ((range as u64) + 1) * cum_freq[*byte as usize] / cum_freq[257])
+                    as u32;
 
                 loop {
                     // If MSB of low and high match, push the MSB then handle any overflow.
@@ -86,7 +92,7 @@ pub fn encode(src: &Path, des: &Path) -> Result<(), Box<dyn Error>> {
     }
 }
 
-pub fn decode(src: &Path, des: &Path) -> Result<(), Box<dyn Error>> {
+pub fn decode(src: &Path, des: &Path) -> Result<(), Error> {
     todo!();
 }
 
@@ -105,7 +111,7 @@ impl BitStream {
         }
     }
 
-    fn push(&mut self, bit: bool) -> Result<(), Box<dyn Error>> {
+    fn push(&mut self, bit: bool) -> Result<(), Error> {
         self.bits <<= 1;
         self.bits += bit as u8;
         self.no_bits += 1;
@@ -119,7 +125,7 @@ impl BitStream {
         Ok(())
     }
 
-    fn finish(&mut self) -> Result<(), Box<dyn Error>> {
+    fn finish(&mut self) -> Result<(), Error> {
         self.push(false)?;
         self.push(true)?;
         while self.no_bits != 0 {
@@ -132,7 +138,7 @@ impl BitStream {
 /// Reads in `file` and ouputs a cumulative frequency table.
 /// Indecies 0-255 represent symbols for the bytes 0x00 to 0xFF. Index 256 represents the end of file symbol. Index 257 represents the total number of symbols in the table.
 /// Will parse up to 2^32-1 bytes.
-fn gen_freq_table(file: &mut File) -> Result<[u8; 257], Box<dyn Error>> {
+fn gen_freq_table(file: &mut File) -> Result<[u8; 257], Error> {
     let mut buff = [0u8; BUFF_SIZE];
     let mut freq = [1u8; 257]; //0-255 = bytes 0x00 to 0xFF; 256 = EoF
     let mut total: u64 = 257;
@@ -142,7 +148,7 @@ fn gen_freq_table(file: &mut File) -> Result<[u8; 257], Box<dyn Error>> {
     loop {
         let bytes_read = file.read(&mut buff)?;
         // check if the total number of bytes read exceeds what can be stored in the table
-        if total + bytes_read as u64 > (u32::MAX as u64) || max_reached || bytes_read == 0{
+        if total + bytes_read as u64 > (u32::MAX as u64) || max_reached || bytes_read == 0 {
             break;
         }
 
@@ -188,10 +194,64 @@ fn gen_freq_table(file: &mut File) -> Result<[u8; 257], Box<dyn Error>> {
 }
 
 /// Generates the destination file and writes the header to it.
-fn gen_file(file: &Path, freq: [u8; 257]) -> Result<BufWriter<File>, Box<dyn Error>> {
+fn gen_file(file: &Path, freq: [u8; 257]) -> Result<BufWriter<File>, Error> {
     let mut writer = BufWriter::new(File::create(file)?);
     writer.write(&[VERSION])?;
     writer.write(&freq)?;
 
     Ok(writer)
+}
+
+fn output_progress(size: u64, bytes_processed: u64) -> Result<(), Error> {
+    let perc = (bytes_processed as f64 / size as f64) * 100.0;
+    let size_kb = size / 1000;
+    let bytes_processed_kb = bytes_processed / 1000;
+    let left = if perc < 5.0 {
+        "        "
+    } else if perc < 10.0 {
+        "#       "
+    } else if perc < 15.0 {
+        "##      "
+    } else if perc < 20.0 {
+        "###     "
+    } else if perc < 25.0 {
+        "####    "
+    } else if perc < 30.0 {
+        "#####   "
+    } else if perc < 35.0 {
+        "######  "
+    } else if perc < 40.0 {
+        "####### "
+    } else {
+        "########"
+    };
+    let right = if perc < 60.0 {
+        "        "
+    } else if perc < 65.0 {
+        "#       "
+    } else if perc < 70.0 {
+        "##      "
+    } else if perc < 75.0 {
+        "###     "
+    } else if perc < 80.0 {
+        "####    "
+    } else if perc < 85.0 {
+        "#####   "
+    } else if perc < 90.0 {
+        "######  "
+    } else if perc < 95.0 {
+        "####### "
+    } else if perc < 100.0 {
+        "####### "
+    } else {
+        "########"
+    };
+
+    print!("\r");
+    print!(
+        "[{} {:.2} {}]  {} / {}Kb",
+        left, perc, right, bytes_processed_kb, size_kb
+    );
+    stdout().flush()?;
+    Ok(())
 }
