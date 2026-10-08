@@ -2,10 +2,10 @@ use ecm3428::{decode, encode};
 
 use std::env;
 use std::fs;
-use std::io::Read;
-use std::path::Path;
 use std::io;
 use std::io::ErrorKind;
+use std::io::Read;
+use std::path::Path;
 
 const APP_NAME: &str = "APP NAME";
 const COMMANDS: [&str; 3] = ["enc", "dec", "help"];
@@ -69,30 +69,12 @@ fn main() {
             check_des_overwritable();
         };
 
+        // runs encode function and catches any errors
         match encode(src, des) {
             Ok(()) => {}
             Err(error) => {
-                match error.kind() {
-                    ErrorKind::NotFound => { command_error("File could not be found."); }
-                    ErrorKind::AlreadyExists => { command_error("The destination file already exists."); }
-                    ErrorKind::NotADirectory => { command_error("A directory was expected, but a file was found."); }
-                    ErrorKind::IsADirectory => { command_error("A file was expected, but a directory was found."); }
-                    ErrorKind::ReadOnlyFilesystem => { command_error("The destination filesystem is read-only."); }
-                    ErrorKind::InvalidInput => { command_error("Invalid input was provided for the file operation."); }
-                    ErrorKind::InvalidData => { command_error("The file contains invalid data."); }
-                    ErrorKind::WriteZero => { command_error("The program was unable to write data to the destination."); }
-                    ErrorKind::StorageFull => { command_error("The destination storage is full."); }
-                    ErrorKind::QuotaExceeded => { command_error("The filesystem storage quota has been exceeded."); }
-                    ErrorKind::FileTooLarge => { command_error("The file is too large."); }
-                    ErrorKind::ResourceBusy => { command_error("The file or resource is currently busy."); }
-                    ErrorKind::InvalidFilename => { command_error("The filename is invalid."); }
-                    ErrorKind::Interrupted => { command_error("The file operation was interrupted."); }
-                    ErrorKind::UnexpectedEof => { command_error("The file ended unexpectedly while being read."); }
-                    ErrorKind::OutOfMemory => { command_error("There was not enough memory to complete the operation."); }
-                    ErrorKind::Unsupported => { command_error("This file operation is not supported."); }
-                    ErrorKind::PermissionDenied => { command_error("The file could not be accessed due to its permissions."); }
-                    _ => { command_error(&format!("An I/O error occurred: {}", error)); }
-                }
+                // matches all possible IO errors
+                match_error(error);
             }
         }
     }
@@ -116,30 +98,12 @@ fn main() {
             check_des_overwritable();
         };
 
+        // runs decode function and catches any errors
         match decode(src, des) {
             Ok(()) => {}
             Err(error) => {
-                match error.kind() {
-                    ErrorKind::NotFound => { command_error("File could not be found."); }
-                    ErrorKind::AlreadyExists => { command_error("The destination file already exists."); }
-                    ErrorKind::NotADirectory => { command_error("A directory was expected, but a file was found."); }
-                    ErrorKind::IsADirectory => { command_error("A file was expected, but a directory was found."); }
-                    ErrorKind::ReadOnlyFilesystem => { command_error("The destination filesystem is read-only."); }
-                    ErrorKind::InvalidInput => { command_error("Invalid input was provided for the file operation."); }
-                    ErrorKind::InvalidData => { command_error("The file contains invalid data."); }
-                    ErrorKind::WriteZero => { command_error("The program was unable to write data to the destination."); }
-                    ErrorKind::StorageFull => { command_error("The destination storage is full."); }
-                    ErrorKind::QuotaExceeded => { command_error("The filesystem storage quota has been exceeded."); }
-                    ErrorKind::FileTooLarge => { command_error("The file is too large."); }
-                    ErrorKind::ResourceBusy => { command_error("The file or resource is currently busy."); }
-                    ErrorKind::InvalidFilename => { command_error("The filename is invalid."); }
-                    ErrorKind::Interrupted => { command_error("The file operation was interrupted."); }
-                    ErrorKind::UnexpectedEof => { command_error("The file ended unexpectedly while being read."); }
-                    ErrorKind::OutOfMemory => { command_error("There was not enough memory to complete the operation."); }
-                    ErrorKind::Unsupported => { command_error("This file operation is not supported."); }
-                    ErrorKind::PermissionDenied => { command_error("The file could not be accessed due to its permissions."); }
-                    _ => { command_error(&format!("An I/O error occurred: {}", error)); }
-                }
+                // matches all possible IO errors
+                match_error(error);
             }
         }
     }
@@ -155,16 +119,16 @@ fn check_des_overwritable() {
     println!("The destination path is a file. Would you like to overwrite it? (y/n): ");
     let mut answer: String = String::new();
     io::stdin()
-            .read_line(&mut answer)
-            .expect("Could not read input");
-    let mut ans_low:String = answer.trim().to_lowercase();
+        .read_line(&mut answer)
+        .expect("Could not read input");
+    let mut ans_low: String = answer.trim().to_lowercase();
 
     while ans_low != "y" && ans_low != "yes" {
         if ans_low == "n" || ans_low == "no" {
             std::process::exit(0);
         }
 
-        println!("Please either enter 'y' or 'n':");        
+        println!("Please either enter 'y' or 'n':");
         answer.clear();
 
         io::stdin()
@@ -172,4 +136,54 @@ fn check_des_overwritable() {
             .expect("Could not read input");
         ans_low = answer.trim().to_lowercase();
     }
+}
+
+fn match_error(error: io::Error) {
+    match error.kind() {
+        ErrorKind::NotFound => {
+            command_error("File could not be found.");
+        }
+        ErrorKind::IsADirectory => {
+            command_error("A file was expected, but a directory was found.");
+        }
+        ErrorKind::ReadOnlyFilesystem => {
+            command_error("The destination filesystem is read-only.");
+        }
+        ErrorKind::WriteZero => {
+            command_error("The program was unable to write data to the destination.");
+        }
+        ErrorKind::StorageFull => {
+            command_error("The destination storage is full.");
+        }
+        ErrorKind::QuotaExceeded => {
+            command_error("The filesystem storage quota has been exceeded.");
+        }
+        ErrorKind::FileTooLarge => {
+            command_error("The file is too large.");
+        }
+        ErrorKind::ResourceBusy => {
+            command_error("The file or resource is currently busy.");
+        }
+        ErrorKind::InvalidFilename => {
+            command_error("The filename is invalid.");
+        }
+        ErrorKind::Interrupted => {
+            command_error("The file operation was interrupted.");
+        }
+        ErrorKind::UnexpectedEof => {
+            command_error("The file ended unexpectedly while being read.");
+        }
+        ErrorKind::OutOfMemory => {
+            command_error("There was not enough memory to complete the operation.");
+        }
+        ErrorKind::Unsupported => {
+            command_error("This file operation is not supported.");
+        }
+        ErrorKind::PermissionDenied => {
+            command_error("The file could not be accessed due to its permissions.");
+        }
+        _ => {
+            command_error(&format!("An I/O error occurred: {}", error));
+        }
+    };
 }
