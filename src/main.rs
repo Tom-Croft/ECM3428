@@ -177,7 +177,7 @@ fn match_error(error: io::Error) {
             command_error("There was not enough memory to complete the operation.");
         }
         ErrorKind::Unsupported => {
-            command_error("This file operation is not supported.");
+            command_error("The version of the file is more recent than the decoder version that is being used.");
         }
         ErrorKind::PermissionDenied => {
             command_error("The file could not be accessed due to its permissions.");
