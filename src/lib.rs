@@ -18,14 +18,13 @@ pub fn encode(src: &Path, des: &Path) -> Result<(), Error> {
 
     println!("Generating Frequnecy Table...");
     let freq = gen_freq_table(&mut src_file)?;
-    let mut cum_freq: Vec<u64> = freq.iter().fold(Vec::new(), |mut acc: Vec<u64>, cur: &u8| {
-        acc.push(match acc.last() {
-            None => *cur as u64,
-            Some(v) => *cur as u64 + *v,
-        });
-        acc
-    });
-    cum_freq.push(cum_freq.last().unwrap() + 1);
+    let mut cum_freq = [0u32; 258];
+
+    for (i, f) in freq.iter().enumerate() {
+        cum_freq[i+1] = if i != 0 {cum_freq[i] + *f as u32} else {*f as u32};
+    }
+
+    let cum_freq = cum_freq.map(|f| f as u64);
 
     println!("Compressing File...");
     let mut out_stream: BitStream = BitStream::new(gen_file(des, freq)?);
@@ -39,7 +38,7 @@ pub fn encode(src: &Path, des: &Path) -> Result<(), Error> {
     let size = src_file.metadata()?.len();
     let mut bytes_processed: u64 = 0;
 
-    loop {
+    let rtn = loop {
         let bytes_read = src_file.read(&mut buff)?;
         if bytes_read == 0 {
             break out_stream.finish();
@@ -58,7 +57,6 @@ pub fn encode(src: &Path, des: &Path) -> Result<(), Error> {
                 low = ((low as u64)
                     + ((range as u64) + 1) * cum_freq[*byte as usize] / cum_freq[257])
                     as u32;
-
                 loop {
                     // If MSB of low and high match, push the MSB then handle any overflow.
                     if (low ^ high) & MSB == 0 {
@@ -79,7 +77,13 @@ pub fn encode(src: &Path, des: &Path) -> Result<(), Error> {
                     }
                 }
             })?;
-    }
+    };
+    
+    // Output that its finished
+    print!("\r\x1b[2K");
+    print!("Done!\n");
+
+    rtn
 }
 
 pub fn decode(src: &Path, des: &Path) -> Result<(), Error> {
@@ -132,52 +136,39 @@ impl BitStream {
 /// Will parse up to 2^32-1 bytes.
 fn gen_freq_table(file: &mut File) -> Result<[u8; 257], Error> {
     let mut buff = [0u8; BUFF_SIZE];
-    let mut freq = [1u8; 257]; //0-255 = bytes 0x00 to 0xFF; 256 = EoF
-    let mut total: u64 = 257;
+    let mut freq = [0u8; 257]; //0-255 = bytes 0x00 to 0xFF; 256 = EoF
+    let mut total: u64 = 0;
     let mut max_reached = false;
+    
 
-    // Add up to 2^32-1 symbols to the frequency table
-    loop {
+    // Add symbols to frequency table
+    let early_exit = loop {
         let bytes_read = file.read(&mut buff)?;
-        // check if the total number of bytes read exceeds what can be stored in the table
-        if total + bytes_read as u64 > (u32::MAX as u64) || max_reached || bytes_read == 0 {
-            break;
+        // check if enough bytes have been read to either fill up the table or each maximum value of total
+        if max_reached {
+            break true;
         }
 
-        scope(|s| {
-            let handles: Vec<_> = buff[0..bytes_read]
-                .chunks(BUFF_SIZE / NO_THREADS)
-                .map(|chunk| {
-                    s.spawn(move || {
-                        let mut result = vec![0u8; 256];
-                        let mut local_max_reached = false;
-                        chunk.iter().for_each(|byte| {
-                            if !local_max_reached {
-                                if result[*byte as usize] == u8::MAX {
-                                    local_max_reached = true;
-                                } else {
-                                    result[*byte as usize] += 1
-                                }
-                            }
-                        });
-                        result
-                    })
-                })
-                .collect();
+        if bytes_read == 0 {
+            break false;
+        }
 
-            total += bytes_read as u64;
+        for byte in buff[0..bytes_read].iter() {
+            if freq[*byte as usize] == u8::MAX || total + 1 > u32::MAX as u64 {
+                max_reached = true;
+                break;
+            } else {
+                freq[*byte as usize] += 1;
+                total += 1;
+            }
+        };
+    };
 
-            handles.into_iter().for_each(|h| {
-                h.join().unwrap().iter().enumerate().for_each(|(i, val)| {
-                    if freq[i] as u16 + *val as u16 > u8::MAX as u16 {
-                        freq[i] = u8::MAX;
-                        max_reached = true;
-                    } else {
-                        freq[i] += *val
-                    }
-                })
-            });
-        });
+
+    if early_exit {
+        freq = freq.map(|f|if f == 0 {1} else {f});
+    } else {
+        freq[256] = 1; // EoF
     }
 
     file.seek(SeekFrom::Start(0))?;
@@ -239,7 +230,7 @@ fn output_progress(size: u64, bytes_processed: u64) -> Result<(), Error> {
         "########"
     };
 
-    print!("\r");
+    print!("\r\x1b[2K");
     print!(
         "[{} {:.2} {}]  {} / {}Kb",
         left, perc, right, bytes_processed_kb, size_kb
