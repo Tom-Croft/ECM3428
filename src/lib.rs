@@ -1,10 +1,10 @@
-use std::path::{Path};
-use std::error::{Error};
+use std::error::Error;
+use std::path::Path;
 
-pub fn encode(src:&Path, des:&Path) -> Result<(), Box<dyn Error>> {
+pub fn encode(src: &Path, des: &Path) -> Result<(), Box<dyn Error>> {
     todo!();
 }
 
-pub fn decode(src:&Path, des:&Path) -> Result<(), Box<dyn Error>> {
+pub fn decode(src: &Path, des: &Path) -> Result<(), Box<dyn Error>> {
     todo!();
 }
