@@ -7,7 +7,11 @@ const VERSION: u8 = 0;
 const MSB: u32 = 0b10000000_00000000_00000000_00000000;
 const SEC_MSB: u32 = 0b01000000_00000000_00000000_00000000;
 const EOF: usize = 256;
+const ENC_UPDATE: u64 = 524280;
+const DEC_UPDATE: u64 = ENC_UPDATE/4;
 
+/// Encodes the file in `src` and outputs the resultant file in `des`, overwriting any files that exist. 
+/// Occasionaly prints to the consol progress updates. 
 pub fn encode(src: &Path, des: &Path) -> Result<(), Error> {
     println!("Compressing File...");
 
@@ -26,26 +30,30 @@ pub fn encode(src: &Path, des: &Path) -> Result<(), Error> {
     let mut bytes_processed: u64 = 0;
     let mut out_stream: OBitStream = OBitStream::new(gen_file(des, &freq)?);
 
+    // Encoding loop
     loop {
+        // Read in 1 byte of data
         if in_stream.read(&mut current_byte)? == 0 {
             symbol = EOF;
         } else {
             symbol = current_byte[0] as usize;
         }
 
+        // Provide a progress update
         bytes_processed += 1;
-
-        if bytes_processed % u16::MAX as u64 == 0 {
+        if bytes_processed % ENC_UPDATE == 0 {
             output_progress(size, bytes_processed)?;
         }
 
+        // Update the range, upper bound and lower bound
         range = high - low;
         high =
             ((low as u64) + ((range as u64) + 1) * cum_freq[symbol + 1] / cum_freq[257] - 1) as u32;
         low = ((low as u64) + ((range as u64) + 1) * cum_freq[symbol] / cum_freq[257]) as u32;
 
+        // Process the new upper and lower bounds
         loop {
-            // If MSB of low and high match, push the MSB then handle any overflow.
+            // If MSB of low and high match, push the MSB then handle any overflow
             if (low ^ high) & MSB == 0 {
                 out_stream.push(low & MSB != 0)?;
                 for _ in 0..underflow_count {
@@ -54,6 +62,8 @@ pub fn encode(src: &Path, des: &Path) -> Result<(), Error> {
                 underflow_count = 0;
                 low <<= 1;
                 high = (high << 1) + 1;
+            
+            // If there is the start of underflow splice out the underflowing bits and incrument the underflow counter
             } else if SEC_MSB & low != 0 && SEC_MSB & high == 0 {
                 low = (MSB & low) + ((low & (!SEC_MSB)) << 1);
                 high = (MSB & high) + ((high & (!SEC_MSB)) << 1) + 1;
@@ -63,6 +73,7 @@ pub fn encode(src: &Path, des: &Path) -> Result<(), Error> {
             }
         }
 
+        // Output up to the end of the current byte if the end of the input file is reached
         if symbol == EOF {
             out_stream.finish()?;
             break;
@@ -76,6 +87,8 @@ pub fn encode(src: &Path, des: &Path) -> Result<(), Error> {
     Ok(())
 }
 
+/// Decodes the arithmetic coded file in `src` and outputs the result in `des` overwriting any files already existing there.
+/// Ocasionally prints progress updates to the console. 
 pub fn decode(src: &Path, des: &Path) -> Result<(), Error> {
     println!("Decompressing File...");
 
@@ -86,8 +99,8 @@ pub fn decode(src: &Path, des: &Path) -> Result<(), Error> {
     let mut low: u32 = 0;
     let mut high: u32 = u32::MAX; // High = true upper bound - 1
     let mut range: u32; // Range = true range - 1
-    let mut encoded: u32 = 0;
-    let mut scaled_symbol: u32;
+    let mut encoded: u32 = 0; //Sliding 32 bit window into the encoded file 
+    let mut scaled_symbol: u32; //The cumulative frequency for the current symbol 
     let mut symbol: usize;
     let mut bytes_processed: u64 = 0;
     let mut bits_processed: u8 = 0;
@@ -99,33 +112,41 @@ pub fn decode(src: &Path, des: &Path) -> Result<(), Error> {
         encoded = (encoded << 1) + (in_stream.pop()? as u32);
     }
 
-    // decoding loop
+    // Decoding loop
     loop {
+        // Determine which symbol encoded represents
         range = high - low;
         scaled_symbol =
             ((cum_freq[257] * (encoded as u64 - low as u64 + 1) - 1) / (range as u64 + 1)) as u32;
         symbol = get_symbol(scaled_symbol, &cum_freq);
 
+        // If its EoF stop
         if symbol == EOF {
             break;
         };
 
+        // Otherwise output it and update the new upper and lower bounds
         out_stream.write(&[symbol as u8])?;
         high =
             ((low as u64) + ((range as u64) + 1) * cum_freq[symbol + 1] / cum_freq[257] - 1) as u32;
         low = ((low as u64) + ((range as u64) + 1) * cum_freq[symbol] / cum_freq[257]) as u32;
 
-        if bytes_processed % u16::MAX as u64 == 0 {
+        // Provide a progress update
+        if bytes_processed % DEC_UPDATE == 0 {
             output_progress(size, bytes_processed)?;
         }
 
-        loop {
+        // Process the new upper and lower bounds
+        loop { 
+            // Shift out MSB if its common between low and high
             if (low ^ high) & MSB == 0 {
                 low <<= 1;
                 high = (high << 1) + 1;
                 encoded = (encoded << 1) + in_stream.pop()? as u32;
                 (bits_processed, bytes_processed) =
                     incrument_processing(bits_processed, bytes_processed);
+            
+            // Splice out overflow 
             } else if SEC_MSB & low != 0 && SEC_MSB & high == 0 {
                 low = (MSB & low) + ((low & (!SEC_MSB)) << 1);
                 high = (MSB & high) + ((high & (!SEC_MSB)) << 1) + 1;
@@ -144,7 +165,7 @@ pub fn decode(src: &Path, des: &Path) -> Result<(), Error> {
     Ok(())
 }
 
-/// A bitstream, which is able to write individual btis to an output.
+/// A bitstream which is able to write individual bits to an output
 struct OBitStream {
     bits: u8,
     no_bits: u8,
@@ -152,6 +173,7 @@ struct OBitStream {
 }
 
 impl OBitStream {
+    /// Constructs a new bitstream to the file containied within the BufWriter 
     fn new(writer: BufWriter<File>) -> Self {
         OBitStream {
             bits: 0,
@@ -160,6 +182,7 @@ impl OBitStream {
         }
     }
 
+    /// Pushes a single bit into the stream
     fn push(&mut self, bit: bool) -> Result<(), Error> {
         self.bits <<= 1;
         self.bits += bit as u8;
@@ -174,6 +197,7 @@ impl OBitStream {
         Ok(())
     }
 
+    /// Pushes 01 into the bitstream, then fills the rest of the byte with 1s 
     fn finish(&mut self) -> Result<(), Error> {
         self.push(false)?;
         self.push(true)?;
@@ -184,6 +208,7 @@ impl OBitStream {
     }
 }
 
+/// Input bitstream that can read one bit at a time
 struct IBitStream {
     reader: BufReader<File>,
     current_byte: [u8; 1],
@@ -191,6 +216,7 @@ struct IBitStream {
 }
 
 impl IBitStream {
+    /// Construct a new IBitStream that reads from the file within the BufReader
     fn new(reader: BufReader<File>) -> Self {
         IBitStream {
             reader: reader,
@@ -199,6 +225,7 @@ impl IBitStream {
         }
     }
 
+    /// Pop one bit from the bitstream and seek along to the next bit 
     fn pop(&mut self) -> Result<bool, Error> {
         if self.bits_outputted == 8 {
             let bytes_read = self.reader.read(&mut self.current_byte)?;
@@ -216,7 +243,7 @@ impl IBitStream {
     }
 }
 
-/// Reads in `file` and ouputs a cumulative frequency table.
+/// Reads in `file` and ouputs a frequency table generated from the begining of the file. Seeks the reader back to the start of the file upon completion. 
 /// Indecies 0-255 represent symbols for the bytes 0x00 to 0xFF. Index 256 represents the end of file symbol.
 fn gen_freq_table(reader: &mut BufReader<&mut File>) -> Result<[u8; 257], Error> {
     let mut freq = [0u8; 257]; //0-255 = bytes 0x00 to 0xFF; 256 = EoF
@@ -228,15 +255,17 @@ fn gen_freq_table(reader: &mut BufReader<&mut File>) -> Result<[u8; 257], Error>
     // Add symbols to frequency table
     let early_exit = loop {
         let bytes_read = reader.read(&mut buff)?;
-        // check if enough bytes have been read to either fill up the table or each maximum value of total
+        // Stop if enough bytes have been read to either fill up one entry or the total 
         if max_reached {
             break true;
         }
 
+        // Stop if the end of file is reached
         if bytes_read == 0 {
             break false;
         }
 
+        // Add the symbol to the frequency table
         symbol = buff[0] as usize;
 
         if freq[symbol] == u8::MAX || total + 1 > u32::MAX as u64 {
@@ -247,6 +276,7 @@ fn gen_freq_table(reader: &mut BufReader<&mut File>) -> Result<[u8; 257], Error>
         }
     };
 
+    // Ensure every frequency is atleast 1 if only part of the file was used to produce the table 
     if early_exit {
         freq = freq.map(|f| if f == 0 { 1 } else { f });
     } else {
@@ -322,7 +352,7 @@ fn output_progress(size: u64, bytes_processed: u64) -> Result<(), Error> {
     Ok(())
 }
 
-/// Read the header of a compressed file, and returns the frequency table
+/// Read the header of a compressed file, verifies it follows the correct protocl and returns the frequency table stored in it 
 fn process_header(file: &mut File) -> Result<[u8; 257], Error> {
     // Parse version number
     let mut header = [0u8; 258];
@@ -347,7 +377,7 @@ fn process_header(file: &mut File) -> Result<[u8; 257], Error> {
     Ok(rtn)
 }
 
-/// Converts a frequency table to a cumulative frequency table where the index i is the lower bound for the symbol.
+/// Converts a frequency table to a cumulative frequency table where the index is the lower bound for the symbol.
 /// Indecies 0-255 represent bytes 0x00 to 0xFF. Index 256 represents EoF. Index 257 is the total.
 fn gen_cum_freq(freq: &[u8; 257]) -> [u64; 258] {
     let mut cum_freq = [0u32; 258];
@@ -363,6 +393,7 @@ fn gen_cum_freq(freq: &[u8; 257]) -> [u64; 258] {
     cum_freq.map(|f| f as u64)
 }
 
+/// Performs linear search to find the frequency band `scaled_symbol` is within in `cum_freq`
 fn get_symbol(scaled_symbol: u32, cum_freq: &[u64; 258]) -> usize {
     let s = scaled_symbol as u64;
     for (i, v) in cum_freq.iter().enumerate() {
@@ -373,6 +404,7 @@ fn get_symbol(scaled_symbol: u32, cum_freq: &[u64; 258]) -> usize {
     panic!()
 }
 
+/// Increuments the bits and bytes processed by 1 bit 
 fn incrument_processing(bits_processed: u8, bytes_processed: u64) -> (u8, u64) {
     if bits_processed + 1 == 8 {
         (0, bytes_processed + 1)
