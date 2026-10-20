@@ -95,7 +95,7 @@ pub fn encode(src: &Path, des: &Path) -> Result<(), Error> {
     let out_size = File::open(des)?.metadata()?.len();
     if out_size > in_size {
         println!(
-            "Warning: Inflated file by {:.2} kb ({:.2}% larger). The source file may be too small or a non-byte encoding.",
+            "Warning: Inflated file by {:.2} kb ({:.2}% larger). The source file may be too small, a non-byte encoding, or too close to entropy.",
             (out_size - in_size) as f64 / 1024 as f64,
             (out_size as f64 / in_size as f64 - 1.0)*100.0
         );
@@ -194,6 +194,24 @@ pub fn decode(src: &Path, des: &Path) -> Result<(), Error> {
     Ok(())
 }
 
+pub fn freq_anal(src: &Path) -> Result<(), Error>{
+    
+    let freq = process_header(&mut File::open(src)?)?;
+    let max = freq.iter().fold(0u8, |ac, c| ac.max(*c)) as usize;
+    for (i, f) in freq.iter().enumerate() {
+        if *f == 0{
+            continue;
+        }
+        else if i == 256 {
+            print!("EoF   ({:0>3}) | {:#<2$}\n", *f, "", (*f as usize * 100 / max));
+        }
+        else {
+            print!("0x{:<3x} ({:0>3}) | {:#<3$}\n", i, *f, "", (*f as usize * 100 / max)); 
+        }
+    }
+    Ok(())
+}
+
 /// A bitstream which is able to write individual bits to an output
 struct OBitStream {
     bits: u8,
@@ -272,7 +290,7 @@ impl IBitStream {
     }
 }
 
-/// Reads in `file` and ouputs a frequency table generated from the begining of the file. Seeks the reader back to the start of the file upon completion.
+/// Reads in `file` and outputs a frequency table generated from the beginning of the file. Seeks the reader back to the start of the file upon completion.
 /// Indecies 0-255 represent symbols for the bytes 0x00 to 0xFF. Index 256 represents the end of file symbol.
 fn gen_freq_table(reader: &mut BufReader<&mut File>) -> Result<[u8; 257], Error> {
     let mut freq = [0u8; 257]; //0-255 = bytes 0x00 to 0xFF; 256 = EoF
@@ -381,7 +399,7 @@ fn output_progress(size: u64, bytes_processed: u64) -> Result<(), Error> {
     Ok(())
 }
 
-/// Read the header of a compressed file, verifies it follows the correct protocl and returns the frequency table stored in it
+/// Read the header of a compressed file, verifies it follows the correct protocol and returns the frequency table stored in it
 fn process_header(file: &mut File) -> Result<[u8; 257], Error> {
     // Parse version number
     let mut header = [0u8; 258];

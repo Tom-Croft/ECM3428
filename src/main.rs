@@ -1,4 +1,4 @@
-use ecm3428::{decode, encode};
+use ecm3428::{decode, encode, freq_anal};
 
 use std::env;
 use std::io;
@@ -6,7 +6,7 @@ use std::io::ErrorKind;
 use std::path::Path;
 
 const APP_NAME: &str = "APP NAME";
-const COMMANDS: [&str; 3] = ["enc", "dec", "help"];
+const COMMANDS: [&str; 4] = ["enc", "dec", "help", "freq"];
 
 // contains the code that will allow the CLI to run
 fn main() {
@@ -43,7 +43,7 @@ fn main() {
                 "   help                        Help about commands.\n",
                 "   enc [SRC PATH] [OUT PATH]   Encodes the file given in SRC PATH and outputs the result to OUT PATH.\n",
                 "   dec [SRC PATH] [OUT PATH]   Decodes the file given in SRC PATH and outputs the result to OUT PATH.\n",
-                "   frq [SRC PATH]              Outputs the frequency table for the encoded file.\n"
+                "   freq [SRC PATH]             Outputs the frequency table for the encoded file.\n"
             ));
             std::process::exit(0);
         }
@@ -95,6 +95,27 @@ fn main() {
             }
         }
     }
+
+    if command == "freq" {
+        if argc != 3 {
+            command_error(&format!(
+                "Expected 2 arguments but {} {} given.",
+                argc - 1,
+                arg_word
+            ));
+        }
+
+        let src: &Path = Path::new(&args[2]);
+
+        match freq_anal(src) {
+            Ok(()) => {},
+            Err(error) => {
+                // matches all possible IO errors
+                match_error(error);
+            }
+        }
+    }
+    
 }
 
 // Function for formatting CLI errors
