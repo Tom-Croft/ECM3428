@@ -1,7 +1,8 @@
 use std::fs::File;
 use std::io::prelude::{Read, Seek, Write};
-use std::io::{BufReader, BufWriter, Error, ErrorKind, SeekFrom, stdout};
+use std::io::{BufReader, BufWriter, Error, ErrorKind, SeekFrom, stdout, stdin};
 use std::path::Path;
+
 
 const VERSION: u8 = 0;
 const MSB: u32 = 0b10000000_00000000_00000000_00000000;
@@ -11,9 +12,9 @@ const ENC_UPDATE: u64 = 524280;
 const DEC_UPDATE: u64 = ENC_UPDATE/4;
 
 /// Encodes the file in `src` and outputs the resultant file in `des`, overwriting any files that exist. 
-/// Occasionaly prints to the consol progress updates. 
+/// Occasionally prints to the consol progress updates. 
 pub fn encode(src: &Path, des: &Path) -> Result<(), Error> {
-    println!("Compressing File...");
+
 
     // Setup
     let mut src_file = File::open(src)?;
@@ -28,7 +29,16 @@ pub fn encode(src: &Path, des: &Path) -> Result<(), Error> {
     let mut current_byte = [0u8; 1];
     let mut symbol: usize;
     let mut bytes_processed: u64 = 0;
+    
+    // Check destination
+    if des.is_file() && check_des_overwritable() {
+        println!("Exiting...");
+        return Ok(()); 
+    }
+
     let mut out_stream: OBitStream = OBitStream::new(gen_file(des, &freq)?);
+
+    println!("Compressing File...");
 
     // Encoding loop
     loop {
@@ -90,7 +100,6 @@ pub fn encode(src: &Path, des: &Path) -> Result<(), Error> {
 /// Decodes the arithmetic coded file in `src` and outputs the result in `des` overwriting any files already existing there.
 /// Ocasionally prints progress updates to the console. 
 pub fn decode(src: &Path, des: &Path) -> Result<(), Error> {
-    println!("Decompressing File...");
 
     // Setup
     let mut src_file = File::open(src)?;
@@ -104,8 +113,18 @@ pub fn decode(src: &Path, des: &Path) -> Result<(), Error> {
     let mut symbol: usize;
     let mut bytes_processed: u64 = 0;
     let mut bits_processed: u8 = 0;
-    let mut out_stream = BufWriter::new(File::create(des)?);
     let mut in_stream = IBitStream::new(BufReader::new(src_file));
+
+    // Check destination
+    if des.is_file() && check_des_overwritable(){
+        println!("Exiting...");
+        return Ok(()); 
+    }
+
+    let mut out_stream = BufWriter::new(File::create(des)?);
+    
+    
+    println!("Decompressing File...");
 
     // read in first 32 bits
     for _ in 0..32 {
@@ -144,7 +163,7 @@ pub fn decode(src: &Path, des: &Path) -> Result<(), Error> {
                 high = (high << 1) + 1;
                 encoded = (encoded << 1) + in_stream.pop()? as u32;
                 (bits_processed, bytes_processed) =
-                    incrument_processing(bits_processed, bytes_processed);
+                    increment_processing(bits_processed, bytes_processed);
             
             // Splice out overflow 
             } else if SEC_MSB & low != 0 && SEC_MSB & high == 0 {
@@ -152,7 +171,7 @@ pub fn decode(src: &Path, des: &Path) -> Result<(), Error> {
                 high = (MSB & high) + ((high & (!SEC_MSB)) << 1) + 1;
                 encoded = (MSB & encoded) + ((encoded & (!SEC_MSB)) << 1) + in_stream.pop()? as u32;
                 (bits_processed, bytes_processed) =
-                    incrument_processing(bits_processed, bytes_processed);
+                    increment_processing(bits_processed, bytes_processed);
             } else {
                 break;
             }
@@ -404,11 +423,37 @@ fn get_symbol(scaled_symbol: u32, cum_freq: &[u64; 258]) -> usize {
     panic!()
 }
 
-/// Increuments the bits and bytes processed by 1 bit 
-fn incrument_processing(bits_processed: u8, bytes_processed: u64) -> (u8, u64) {
+/// Increments the bits and bytes processed by 1 bit 
+fn increment_processing(bits_processed: u8, bytes_processed: u64) -> (u8, u64) {
     if bits_processed + 1 == 8 {
         (0, bytes_processed + 1)
     } else {
         (bits_processed + 1, bytes_processed)
     }
+}
+
+/// Asks the user if they want to overwrite the destination file, if yes returns false else true 
+fn check_des_overwritable() -> bool {
+    println!("Destination file already exists. Would you like to overwrite it? (y/n): ");
+    let mut answer: String = String::new();
+    stdin()
+        .read_line(&mut answer)
+        .expect("Could not read input");
+    let mut ans_low: String = answer.trim().to_lowercase();
+
+    while ans_low != "y" && ans_low != "yes" {
+        if ans_low == "n" || ans_low == "no" {
+            return true;
+        }
+
+        println!("Please either enter 'y' or 'n':");
+        answer.clear();
+
+        stdin()
+            .read_line(&mut answer)
+            .expect("Could not read input");
+        ans_low = answer.trim().to_lowercase();
+    }
+
+    false
 }
