@@ -70,7 +70,7 @@ pub fn encode(src: &Path, des: &Path) -> Result<(), Error> {
                 low <<= 1;
                 high = (high << 1) + 1;
 
-            // If there is the start of underflow splice out the underflowing bits and incrument the underflow counter
+            // If there is the start of underflow splice out the underflowing bits and increment the underflow counter
             } else if SEC_MSB & low != 0 && SEC_MSB & high == 0 {
                 low = (MSB & low) + ((low & (!SEC_MSB)) << 1);
                 high = (MSB & high) + ((high & (!SEC_MSB)) << 1) + 1;
@@ -110,7 +110,7 @@ pub fn encode(src: &Path, des: &Path) -> Result<(), Error> {
 }
 
 /// Decodes the arithmetic coded file in `src` and outputs the result in `des` overwriting any files already existing there.
-/// Ocasionally prints progress updates to the console.
+/// Occasionally prints progress updates to the console.
 pub fn decode(src: &Path, des: &Path) -> Result<(), Error> {
     // Setup
     let mut src_file = File::open(src)?;
@@ -228,7 +228,7 @@ struct OBitStream {
 }
 
 impl OBitStream {
-    /// Constructs a new bitstream to the file containied within the BufWriter
+    /// Constructs a new bitstream to the file contained within the BufWriter
     fn new(writer: BufWriter<File>) -> Self {
         OBitStream {
             bits: 0,
@@ -299,7 +299,7 @@ impl IBitStream {
 }
 
 /// Reads in `file` and outputs a frequency table generated from the beginning of the file. Seeks the reader back to the start of the file upon completion.
-/// Indecies 0-255 represent symbols for the bytes 0x00 to 0xFF. Index 256 represents the end of file symbol.
+/// Indices 0-255 represent symbols for the bytes 0x00 to 0xFF. Index 256 represents the end of file symbol.
 fn gen_freq_table(reader: &mut BufReader<&mut File>) -> Result<[u8; 257], Error> {
     let mut freq = [0u32; 257]; //0-255 = bytes 0x00 to 0xFF; 256 = EoF
     let mut buff = [0u8; 1];
@@ -446,7 +446,7 @@ fn process_header(file: &mut File) -> Result<[u8; 257], Error> {
 }
 
 /// Converts a frequency table to a cumulative frequency table where the index is the lower bound for the symbol.
-/// Indecies 0-255 represent bytes 0x00 to 0xFF. Index 256 represents EoF. Index 257 is the total.
+/// Indices 0-255 represent bytes 0x00 to 0xFF. Index 256 represents EoF. Index 257 is the total.
 fn gen_cum_freq(freq: &[u8; 257]) -> [u64; 258] {
     let mut cum_freq = [0u32; 258];
 
