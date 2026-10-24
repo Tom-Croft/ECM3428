@@ -97,7 +97,7 @@ pub fn encode(src: &Path, des: &Path) -> Result<(), Error> {
         println!(
             "Warning: Inflated file by {:.2} kb ({:.2}% larger). The source file may be too small, a non-byte encoding, or too close to entropy.",
             (out_size - in_size) as f64 / 1024 as f64,
-            (out_size as f64 / in_size as f64 - 1.0)*100.0
+            (out_size as f64 / in_size as f64 - 1.0) * 100.0
         );
     } else {
         println!(
@@ -194,19 +194,27 @@ pub fn decode(src: &Path, des: &Path) -> Result<(), Error> {
     Ok(())
 }
 
-pub fn freq_anal(src: &Path) -> Result<(), Error>{
-    
+pub fn freq_anal(src: &Path) -> Result<(), Error> {
     let freq = process_header(&mut File::open(src)?)?;
     let max = freq.iter().fold(0u8, |ac, c| ac.max(*c)) as usize;
     for (i, f) in freq.iter().enumerate() {
-        if *f == 0{
+        if *f == 0 {
             continue;
-        }
-        else if i == 256 {
-            print!("EoF   ({:0>3}) | {:#<2$}\n", *f, "", (*f as usize * 100 / max));
-        }
-        else {
-            print!("0x{:<3x} ({:0>3}) | {:#<3$}\n", i, *f, "", (*f as usize * 100 / max)); 
+        } else if i == 256 {
+            print!(
+                "EoF   ({:0>3}) | {:#<2$}\n",
+                *f,
+                "",
+                (*f as usize * 100 / max)
+            );
+        } else {
+            print!(
+                "0x{:<3x} ({:0>3}) | {:#<3$}\n",
+                i,
+                *f,
+                "",
+                (*f as usize * 100 / max)
+            );
         }
     }
     Ok(())
@@ -293,10 +301,9 @@ impl IBitStream {
 /// Reads in `file` and outputs a frequency table generated from the beginning of the file. Seeks the reader back to the start of the file upon completion.
 /// Indecies 0-255 represent symbols for the bytes 0x00 to 0xFF. Index 256 represents the end of file symbol.
 fn gen_freq_table(reader: &mut BufReader<&mut File>) -> Result<[u8; 257], Error> {
-    let mut freq = [0u8; 257]; //0-255 = bytes 0x00 to 0xFF; 256 = EoF
+    let mut freq = [0u32; 257]; //0-255 = bytes 0x00 to 0xFF; 256 = EoF
     let mut buff = [0u8; 1];
     let mut symbol: usize;
-    let mut total: u64 = 0;
     let mut max_reached = false;
 
     // Add symbols to frequency table
@@ -315,15 +322,29 @@ fn gen_freq_table(reader: &mut BufReader<&mut File>) -> Result<[u8; 257], Error>
         // Add the symbol to the frequency table
         symbol = buff[0] as usize;
 
-        if freq[symbol] == u8::MAX || total + 1 > u32::MAX as u64 {
+        if freq[symbol] == u32::MAX {
             max_reached = true;
         } else {
             freq[symbol] += 1;
-            total += 1;
         }
     };
 
-    // Ensure every frequency is atleast 1 if only part of the file was used to produce the table
+    let max: u64 = freq.iter().fold(0, |c: u32, a: &u32| c.max(*a)) as u64;
+
+    let mut freq = freq.map(|f| {
+        if f == 0 {
+            return 0;
+        };
+        let rtn = (f as u64 * u8::MAX as u64 / max) as u8;
+        
+        if rtn == 0 {
+            1
+        } else {
+            rtn
+        }
+    }); // scale frequencies
+
+    // Ensure every frequency is at least 1 if only part of the file was used to produce the table
     if early_exit {
         freq = freq.map(|f| if f == 0 { 1 } else { f });
     } else {
