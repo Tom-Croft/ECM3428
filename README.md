@@ -22,10 +22,8 @@ With a terminal window open in the project folder
 - To run all tests in a specific file use `cargo test --test FILENAME`
 - To run a specific test in a specific file use `cargo test --test FILENAME TEST_FUNCTION_NAME -- --exact`
 
-### Algorithm Explanation
-Symbols are 
-
-encoding:
+### Algorithm pseudocode
+Encoding:
 ```
 low = 0
 high = 0
@@ -38,7 +36,7 @@ for each symbol in input
 output(low)
 ```
 
-decoding:
+Decoding:
 ```
 number = input_code()
 while (symbol != EOF)
@@ -51,10 +49,11 @@ while (symbol != EOF)
 }
 ```
 
-
+#### Time And Space Complexity
 The time complexity of Arithmetic encoding is linear.
+The space complexity of arithmetic encoding is constant
 
-
+#### Test Cases And Results
 (a concise explanation or pseudocode of the algorithm and its time and space complexity;
 – the test cases used and a summary of the results)
 
@@ -62,16 +61,17 @@ The time complexity of Arithmetic encoding is linear.
 
 The current limitations of our compression algorithm is firstly that it is currently only designed for use with text files, and secondly while our compression algorithm does currently decrease the file size for most files it does on ocassion not make the file any smaller or even make it slightly bigger due to storage overhead.
 
-### Project dependencies
+### Project Dependencies
 
+For our project you will need rust installed you can get this from the rust website https://rust-lang.org/tools/install/
 Our project has no dependencies or third-party resources beyond standard Rust libraries and the code we have written.
 
-### Contribution statement
-Tom - Algorithm implementation, backend, and project lead
-Dawid - Testing Lead and Command Line Interface
-Ben - Documentation and Demonstration Lead
-Will - Presentation Lead
-Max - 
+### Contribution Statement
+- Tom - Algorithm implementation, backend, and project lead
+- Dawid - Testing Lead and Command Line Interface
+- Ben - Documentation and Demonstration Lead
+- Will - Presentation Lead
+- Max - Presentation results section
 
-### AI use declaration
-(the required acknowledgement of generative AI use)
+### AI Use Declaration
+No AI was used in the making of this project
