@@ -1,14 +1,12 @@
-use ecm3428::{decode, encode};
+use ecm3428::{decode, encode, freq_anal};
 
 use std::env;
-use std::fs;
 use std::io;
 use std::io::ErrorKind;
-use std::io::Read;
 use std::path::Path;
 
 const APP_NAME: &str = "APP NAME";
-const COMMANDS: [&str; 3] = ["enc", "dec", "help"];
+const COMMANDS: [&str; 4] = ["enc", "dec", "help", "freq"];
 
 // contains the code that will allow the CLI to run
 fn main() {
@@ -44,13 +42,13 @@ fn main() {
                 "Commands:\n",
                 "   help                        Help about commands.\n",
                 "   enc [SRC PATH] [OUT PATH]   Encodes the file given in SRC PATH and outputs the result to OUT PATH.\n",
-                "   dec [SRC PATH] [OUT PATH]   Decodes the file given in SRC PATH and outputs the result to OUT PATH.\n"
+                "   dec [SRC PATH] [OUT PATH]   Decodes the file given in SRC PATH and outputs the result to OUT PATH.\n",
+                "   freq [SRC PATH]             Outputs the frequency table for the encoded file.\n"
             ));
             std::process::exit(0);
         }
     }
 
-    // TODO
     if command == "enc" {
         if argc != 4 {
             command_error(&format!(
@@ -64,11 +62,6 @@ fn main() {
         let src: &Path = Path::new(&args[2]);
         let des: &Path = Path::new(&args[3]);
 
-        if des.is_file() {
-            // asks user if destination file can be overwritten
-            check_des_overwritable();
-        };
-
         // runs encode function and catches any errors
         match encode(src, des) {
             Ok(()) => {}
@@ -79,7 +72,6 @@ fn main() {
         }
     }
 
-    // TODO
     if command == "dec" {
         if argc != 4 {
             command_error(&format!(
@@ -93,10 +85,6 @@ fn main() {
         let src: &Path = Path::new(&args[2]);
         let des: &Path = Path::new(&args[3]);
 
-        if des.is_file() {
-            // asks user if destination file can be overwritten
-            check_des_overwritable();
-        };
 
         // runs decode function and catches any errors
         match decode(src, des) {
@@ -107,6 +95,27 @@ fn main() {
             }
         }
     }
+
+    if command == "freq" {
+        if argc != 3 {
+            command_error(&format!(
+                "Expected 2 arguments but {} {} given.",
+                argc - 1,
+                arg_word
+            ));
+        }
+
+        let src: &Path = Path::new(&args[2]);
+
+        match freq_anal(src) {
+            Ok(()) => {},
+            Err(error) => {
+                // matches all possible IO errors
+                match_error(error);
+            }
+        }
+    }
+    
 }
 
 // Function for formatting CLI errors
@@ -115,28 +124,6 @@ fn command_error(error_message: &str) -> ! {
     std::process::exit(1);
 }
 
-fn check_des_overwritable() {
-    println!("The destination path is a file. Would you like to overwrite it? (y/n): ");
-    let mut answer: String = String::new();
-    io::stdin()
-        .read_line(&mut answer)
-        .expect("Could not read input");
-    let mut ans_low: String = answer.trim().to_lowercase();
-
-    while ans_low != "y" && ans_low != "yes" {
-        if ans_low == "n" || ans_low == "no" {
-            std::process::exit(0);
-        }
-
-        println!("Please either enter 'y' or 'n':");
-        answer.clear();
-
-        io::stdin()
-            .read_line(&mut answer)
-            .expect("Could not read input");
-        ans_low = answer.trim().to_lowercase();
-    }
-}
 
 fn match_error(error: io::Error) {
     match error.kind() {
