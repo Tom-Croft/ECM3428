@@ -6,14 +6,17 @@ In this project we intend to make a text compression algorithm using arithmetic 
 
 Our project is intended to be used by anyone who would like to compress text files.
 
-The compiled exe file will be able to run as a standalone file for a linux operating system. 
-You can also compile it for use with another system using cargo along with the project files.
+#### Installation and Running Project:
 
-#### Compiling Project:
+First download and unzip the project, then with a terminal window open in the project folder 
+- To encode a file use `cargo run enc [SRC PATH] [OUT PATH]`
+- To decode a file use `cargo run dec [SRC PATH] [OUT PATH]`
+- To see the frequency table for an encoded file use `cargo run freq [SRC PATH]`
+
+#### Recompiling Project:
 
 With a terminal window open in the project folder 
-- Use `cargo build` to compile the program
-- Use `cargo run` to run the program
+- Use `cargo build` to recompile the program
 
 #### Running tests:
 
@@ -63,7 +66,7 @@ The current limitations of our compression algorithm is firstly that it is curre
 
 ### Project Dependencies
 
-For our project you will need rust installed you can get this from the rust website https://rust-lang.org/tools/install/
+For our project you will need rust installed you can get this from the rust website https://rust-lang.org/tools/install/.
 Our project has no dependencies or third-party resources beyond standard Rust libraries and the code we have written.
 
 ### Contribution Statement
