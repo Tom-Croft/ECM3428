@@ -77,9 +77,6 @@ Integration tests:
 - check help command is case sensitive, correct error for wrong number of arguments, test works when used properly
 - check enc, dec, and freq behaves properly with wrong arguments
 - test freq with empty path
-
-Unit tests:
-Check that the correct error is given when the:
 - file cannot be found
 - a directory is given instead of a file
 - selected file is read only
@@ -93,6 +90,17 @@ Check that the correct error is given when the:
 - version of the file given is more recent than the decoder version being used
 - file cannot be accessed due to inadequate permisions
 - any other i/o error is raised
+
+Unit tests:
+- test that incrementing bits works properly for edge cases
+- test that correct cumulative frequency table is generated for given inputs
+- test getting a symbol from the cumulative frequency table
+- test generating frequency table from a test file
+- test to see if file is encoded properly
+- test that the program can detect if the header is valid
+- test that the push function pushes and writes bytes correctly
+- test our implementation of pop works correctly
+- test that encoding and decoding process creates a file identical to the original
 
 These test showed that our project worked as expected since all of these tests showed the correct errors or worked as expected for these situations.
 
