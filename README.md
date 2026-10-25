@@ -25,40 +25,62 @@ With a terminal window open in the project folder
 - To run all tests in a specific file use `cargo test --test FILENAME`
 - To run a specific test in a specific file use `cargo test --test FILENAME TEST_FUNCTION_NAME -- --exact`
 
-### Algorithm pseudocode
+### Algorithm pseudocode and explanation
 Encoding:
 ```
 low = 0
 high = 0
+cum_freq = cumulative frequency of each symbol in the alphabet 
 for each symbol in input
 {
-  range = high - low
-  high = low + range * high_range(symbol)
- low = low + range * low_range(symbol)
+  range = high - low 
+  high = low + range * cum_freq(symbol-1) 
+  low = low + range * cum_freq(symbol)
 }
 output(low)
 ```
 
+- Symbols are assigned a portion of a narrowing interval based on the probability of that symbol (starting as [0, 1))
+- Divide interval into the probability of the letters appearing
+- Keep the probability of the current symbol and discard the rest
+- Do this for each symbol and narrow the interval until you reach the end
+- The message is encoded as a number in the final interval
+
 Decoding:
 ```
-number = input_code()
-while (symbol != EOF)
+while symbol left to decode
 {
-  symbol = find_symbol_within_this_range(number)
+  symbol = find symbol between range cum_freq[symbol] <= low/high <   cum_freq[symbol-1]
   output(symbol)
-  range = high_range(symbol) - low_range(symbol)
-  number = number - low_range(symbol)
-  number = number / range
+  range = high - low
+  high = low + range*cum_freq[symbol-1]
+  low = low + range*cum_freq[symbol]
 }
 ```
 
+- This algorithm is the reverse of the encoding algorithm
+- Symbols are decoded based on the current interval
+- The interval is slowly widened as symbols are decoded
+- The message has been decoded once the interval has returned to [0, 1)
+
 #### Time And Space Complexity
 The time complexity of Arithmetic encoding is linear.
-The space complexity of arithmetic encoding is constant
+
+The space complexity of arithmetic encoding is constant.
 
 #### Test Cases And Results
-(a concise explanation or pseudocode of the algorithm and its time and space complexity;
-– the test cases used and a summary of the results)
+For testing the algorithm we used various unit and integration tests.
+
+Integration tests:
+- no argument given
+- unknown command
+- check help command is case sensitive, correct error for wrong number of arguments, test works when used properly
+- check enc, dec, and freq behaves properly with wrong arguments
+- 
+
+Unit tests:
+
+These test showed that our project worked as expected since all of these tests showed the correct errors or worked as expected for these situations.
 
 ### Current Limitations
 
