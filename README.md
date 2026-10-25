@@ -2,7 +2,7 @@
 
 ### Arithmetic coding
 
-In this project we intend to make a text compression algorithm using arithmetic coding. In doing so we are hoping to make the base algoithm for a universal compression algorithm for use with all file types however for simplicity we are only working with text files for this project.
+In this project we intend to make a text compression algorithm using arithmetic coding. In doing so we are making the base algoithm for a universal compression algorithm for use with all file types, however for simplicity we are only working with text files for this project.
 
 Our project is intended to be used by anyone who would like to compress text files.
 
@@ -76,9 +76,23 @@ Integration tests:
 - unknown command
 - check help command is case sensitive, correct error for wrong number of arguments, test works when used properly
 - check enc, dec, and freq behaves properly with wrong arguments
-- 
+- test freq with empty path
 
 Unit tests:
+Check that the correct error is given when the:
+- file cannot be found
+- a directory is given instead of a file
+- selected file is read only
+- file cannot be written to
+- storage is full
+- storage quota exceeded
+- resources are busy
+- filename given is invalid
+- file ends unexpectedly
+- program cannot get access to enough memory
+- version of the file given is more recent than the decoder version being used
+- file cannot be accessed due to inadequate permisions
+- any other i/o error is raised
 
 These test showed that our project worked as expected since all of these tests showed the correct errors or worked as expected for these situations.
 
