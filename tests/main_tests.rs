@@ -4,13 +4,6 @@ use std::fs;
 use std::io::ErrorKind;
 use std::process::Command;
 
-// creates a temporary directory for integration tests
-fn temporary_directory() -> std::path::PathBuf {
-    let dir = std::env::temp_dir().join("ecm3428_test");
-    fs::create_dir_all(&dir).unwrap();
-    return dir;
-}
-
 // links the CL args
 fn run_command(args: &[&str]) -> std::process::Output {
     return Command::new(env!("CARGO_BIN_EXE_ecm3428"))
