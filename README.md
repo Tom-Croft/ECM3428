@@ -69,44 +69,39 @@ The time complexity of Arithmetic encoding is linear.
 The space complexity of arithmetic encoding is constant.
 
 #### Test Cases And Results
-For testing the algorithm we used various unit and integration tests.
+We implemented a total of 34 tests (28 unit, 6 integration)
 
-Integration tests:
-- no argument given
-- unknown command
-- check help command is case sensitive, correct error for wrong number of arguments, test works when used properly
-- check enc, dec, and freq behaves properly with wrong arguments
-- test freq with empty path
-- file cannot be found
-- a directory is given instead of a file
-- selected file is read only
-- file cannot be written to
-- storage is full
-- storage quota exceeded
-- resources are busy
-- filename given is invalid
-- file ends unexpectedly
-- program cannot get access to enough memory
-- version of the file given is more recent than the decoder version being used
-- file cannot be accessed due to inadequate permisions
-- any other i/o error is raised
+Unit:
 
-Unit tests:
-- test that incrementing bits works properly for edge cases
-- test that correct cumulative frequency table is generated for given inputs
-- test getting a symbol from the cumulative frequency table
-- test generating frequency table from a test file
-- test to see if file is encoded properly
-- test that the program can detect if the header is valid
-- test that the push function pushes and writes bytes correctly
-- test our implementation of pop works correctly
-- test that encoding and decoding process creates a file identical to the original
+- test_no_arg_given (Running program with no arguments)
+- test_command_unknown (Running program with unknown commands)
+- test_help_wrong_args (Executing 'help' command with wrong number of arguments)
+- test_help_right_args (Executing 'help' command successfully)
+- test_enc_wrong_args (Executing 'enc' command with wrong number of arguments)
+- test_dec_wrong_args (Executing 'dec' command with wrong number of arguments)
+- test_freq_wrong_args (Executing 'freq' command with wrong number of arguments)
+- test_match_error (Errors are differentiated and handled correctly)
+
+- Anything that starts with 'test_error_...' is more error-handling, so you could generally say "Errors are handled ('File not Found', 'File is Directory', 'Unexpected End of File', etc.)"
+
+- test_increment_processing (Bit increment processing)
+- test_gen_cum_freq (Generating correct cumulative frequency for symbols)
+- test_get_symbol (Matching symbols based on frequency value)
+
+Integration:
+
+- test_gen_freq_table (Generating correct frequency table for a given file while accounting for edge-cases)
+- test_gen_file (Checking if a file was successfully encoded with the right frequency table, file version and length)
+- test_process_header (Checking if an encoded file's header is in the correct format)
+- test_obitstream_push (Checking if bit-pushing has been correctly implemented with O-bit streams)
+- test_ibitstream_pop (Checking if bit-popping has been correctly implemented using I-bit streams)
+- test_encode_decode_convertible (Checking if the encoded file, once decompressed, exactly matches the original source file)
 
 These test showed that our project worked as expected since all of these tests showed the correct errors or worked as expected for these situations.
 
 ### Current Limitations
 
-The current limitations of our compression algorithm is firstly that it is currently only designed for use with text files, and secondly while our compression algorithm does currently decrease the file size for most files it does on ocassion not make the file any smaller or even make it slightly bigger due to storage overhead.
+The current limitations of our compression algorithm is firstly that it is currently only designed for use with text files, and secondly while our compression algorithm does currently decrease the file size for most files it does on occassion not make the file any smaller or even make it slightly bigger due to storage overhead.
 
 ### Project Dependencies
 
