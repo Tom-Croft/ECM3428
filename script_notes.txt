@@ -18,7 +18,10 @@ Files can take up too much storage and bandwidth.​
 Traditional approaches cannot achieve compression close to the source's entropy.​
 Our Encoder/Decoder algorithm addresses this using Arithmetic Coding.​​"
 
-All that needs to be explained is the problem we are solving, and how it specifically relates to our product. Compare to alternative compression means such as huffman.
+All that needs to be explained is the problem we are solving, and how it specifically relates to our product. Compare to alternative compression means such as huffman. The following points should be referenced:
+- Files can take up large amounts of space, especially text-encoded files such as JSON or XML
+- Traditional entropy-based compression algorithms like Huffman encoding force each symbol to a whole number of bytes, wasting space
+- Our compression program using arithmetic coding solves this issue
 
 Slides 3 - 10: Algorithm Explained
 
@@ -59,9 +62,10 @@ Slide 12 - Results​
 45s, Kwiecien
 
 "Results​
-O(n) time complexity.​
+O(n) time complexity and O(1) space complexity.
 Effective at encoding files with repeated pattens.​
 More computationally complex than alternative compression algorithms.​
 Valuable in image/video compression and scientific data storage.​"
 
 keep it simple and factual. properly evaluate our code product, and show that you fully understand the product's capibilities and limitations, in addition to the context in which it would have value in the real world. 
+Note how our implementation consistently beats Huffman.
