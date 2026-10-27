@@ -62,10 +62,10 @@ Slide 12 - Results​
 45s, Kwiecien
 
 "Results​
-O(n) time complexity and O(1) space complexity.
-Effective at encoding files with repeated pattens.​
+O(n) time complexity and O(1) space complexity.​
+Highly effective at encoding files with repeated pattens.​
 More computationally complex than alternative compression algorithms.​
-Valuable in image/video compression and scientific data storage.​"
+Valuable in maximising storage capacity for personal/business/scientific data storage.​"
 
 keep it simple and factual. properly evaluate our code product, and show that you fully understand the product's capibilities and limitations, in addition to the context in which it would have value in the real world. 
 Note how our implementation consistently beats Huffman.
