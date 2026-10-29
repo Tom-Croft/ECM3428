@@ -1,0 +1,71 @@
+Script Notes
+
+Slide 1: Title
+
+~20s, Croft
+
+"Encoder/Decoder using Arithmetic Coding​
+T. Croft, W. Finney, B. Jones, D. Kwiecien, M. Reed​"
+
+Introduce title of project and the algorithm we've used. Does not have to be that deep.
+
+Slide 2: The Problem
+
+~45s, Reed
+
+"The problem: File Compression​
+Files can take up too much storage and bandwidth.​
+Traditional approaches cannot achieve compression close to the source's entropy.​
+Our Encoder/Decoder algorithm addresses this using Arithmetic Coding.​​"
+
+All that needs to be explained is the problem we are solving, and how it specifically relates to our product. Compare to alternative compression means such as huffman. The following points should be referenced:
+- Files can take up large amounts of space, especially text-encoded files such as JSON or XML
+- Traditional entropy-based compression algorithms like Huffman encoding force each symbol to a whole number of bytes, wasting space
+- Our compression program using arithmetic coding solves this issue
+
+Slides 3 - 10: Algorithm Explained
+
+~2m, Finney
+
+Slide 3
+
+Arithmetic coding works by representing an entire message as a number within a progressively smaller interval. We start with the interval between zero and one. We encode the message one character at a time. In this case, we are using the example DAD.
+
+Slide 4
+
+We divide the interval according to the probabillity of each symbol. Now here, D has a probabillity of 2/3, and A has a probabillity of 1/3. As you can see, each symbol is assigned a coresponding proportion of the available interval.
+
+Slide 5
+
+The first character is D, so we keep the D section and we discard the rest. The intarval is now zero to 2/3. This is the first reduction in the range of possible values that could represent the original message.
+
+Slides 6–7
+
+We can now divide the smaller interval using the same probabillities as before. Our next character is A, so we keep the final 1/3% of the interval instead, leaving a range from approximatley 0.44 to 0.67.
+
+Slides 8–9
+
+We then repeat this process for the second D. We split the remaining interval again and retain D's section. We leave an interval from approximatley 0.44 to 0.59. The entire message of "DAD" has been encoded now.
+
+Slide 10
+
+Finally, we choose a number inside this interval. We choose 0.5, which can be represented in binary as 0.1, or simply as 1 in this context. The decoder can use this value and the same symbol probabillities to reconstruct the original message.
+
+Slide 11 - Demo
+
+~1m 30s, Jones
+
+Run the product with a bespoke example file, showing inputs and outputs. include discussion of file size, etc.
+
+Slide 12 - Results​
+
+45s, Kwiecien
+
+"Results​
+O(n) time complexity and O(1) space complexity.​
+Highly effective at encoding files with repeated pattens.​
+More computationally complex than alternative compression algorithms.​
+Valuable in maximising storage capacity for personal/business/scientific data storage.​"
+
+keep it simple and factual. properly evaluate our code product, and show that you fully understand the product's capibilities and limitations, in addition to the context in which it would have value in the real world. 
+Note how our implementation consistently beats Huffman.
