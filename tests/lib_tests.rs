@@ -1,6 +1,5 @@
-use acdc::*;
-
 // creating a new module so that we can access private 'lib.rs' functions for each test
+#[allow(dead_code)]
 mod lib {
     include!("../src/lib.rs");
 
@@ -71,7 +70,7 @@ mod lib {
 
         // when a byte appears very infrequently, it's frequency must be at least 1 (not zero)
         let mut data = Vec::new();
-        for i in 0..1000 {
+        for _ in 0..1000 {
             data.push(0u8);
         }
         data.push(1);
@@ -175,7 +174,7 @@ mod lib {
         assert_eq!(stream.pop().unwrap(), false); // second pop should give us the bit after '1', which is a '0'
 
         // iterate through remaining bits
-        for i in 0..6 {
+        for _ in 0..6 {
             stream.pop().unwrap();
         }
         assert_eq!(stream.pop().unwrap(), true); // any pop past the EoF should always return true or 0
@@ -207,7 +206,7 @@ mod lib {
 
         // check if large files are convertible
         let mut data = Vec::new();
-        for i in 0..10000 {
+        for _ in 0..10000 {
             data.push(0u8);
         }
         fs::write(&src, &data).unwrap();
