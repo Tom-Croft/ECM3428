@@ -1,6 +1,3 @@
-use ecm3428::*;
-
-use std::fs;
 use std::io::ErrorKind;
 use std::process::Command;
 
@@ -84,6 +81,7 @@ fn test_freq_path_empty() {
 }
 
 // A module that contains a copy of the 'main.rs' private functions that can be used for testing error-handling
+#[allow(dead_code)]
 mod main {
     include!("../src/main.rs");
 
