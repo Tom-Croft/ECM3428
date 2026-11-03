@@ -1,11 +1,11 @@
-use ecm3428::{decode, encode, freq_anal};
+use acdc::{decode, encode, freq_anal};
 
 use std::env;
 use std::io;
 use std::io::ErrorKind;
 use std::path::Path;
 
-const APP_NAME: &str = "APP NAME";
+const APP_NAME: &str = "acdc";
 const COMMANDS: [&str; 4] = ["enc", "dec", "help", "freq"];
 
 // contains the code that will allow the CLI to run

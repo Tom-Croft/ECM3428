@@ -1,4 +1,4 @@
-use ecm3428::*;
+use acdc::*;
 
 // creating a new module so that we can access private 'lib.rs' functions for each test
 mod lib {

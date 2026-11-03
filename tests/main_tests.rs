@@ -1,4 +1,4 @@
-use ecm3428::*;
+use acdc::*;
 
 use std::fs;
 use std::io::ErrorKind;
@@ -6,7 +6,7 @@ use std::process::Command;
 
 // links the CL args
 fn run_command(args: &[&str]) -> std::process::Output {
-    return Command::new(env!("CARGO_BIN_EXE_ecm3428"))
+    return Command::new(env!("CARGO_BIN_EXE_acdc"))
         .args(args)
         .output()
         .expect("Error");
