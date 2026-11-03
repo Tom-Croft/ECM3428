@@ -9,9 +9,9 @@ Our project is intended to be used by anyone who would like to compress text fil
 #### Installation and Running Project:
 
 First download and unzip the project, then with a terminal window open in the folder the exe file is in
-- To encode a file use `ACDC enc [SRC PATH] [OUT PATH]`
-- To decode a file use `ACDC run dec [SRC PATH] [OUT PATH]`
-- To see the frequency table for an encoded file use `ACDC run freq [SRC PATH]`
+- To encode a file use `acdc enc [SRC PATH] [OUT PATH]`
+- To decode a file use `acdc dec [SRC PATH] [OUT PATH]`
+- To see the frequency table for an encoded file use `acdc freq [SRC PATH]`
 
 #### Recompiling Project From Source:
 
