@@ -8,15 +8,18 @@ Our project is intended to be used by anyone who would like to compress text fil
 
 #### Installation and Running Project:
 
-First download and unzip the project, then with a terminal window open in the project folder 
-- To encode a file use `cargo run enc [SRC PATH] [OUT PATH]`
-- To decode a file use `cargo run dec [SRC PATH] [OUT PATH]`
-- To see the frequency table for an encoded file use `cargo run freq [SRC PATH]`
+First download and unzip the project, then with a terminal window open in the folder the exe file is in
+- To encode a file use `ACDC enc [SRC PATH] [OUT PATH]`
+- To decode a file use `ACDC run dec [SRC PATH] [OUT PATH]`
+- To see the frequency table for an encoded file use `ACDC run freq [SRC PATH]`
 
-#### Recompiling Project:
+#### Recompiling Project From Source:
 
 With a terminal window open in the project folder 
 - Use `cargo build` to recompile the program
+- To encode a file use `cargo run enc [SRC PATH] [OUT PATH]`
+- To decode a file use `cargo run dec [SRC PATH] [OUT PATH]`
+- To see the frequency table for an encoded file use `cargo run freq [SRC PATH]`
 
 #### Running tests:
 
