@@ -1,4 +1,4 @@
-# Algorithmic Group Project
+# Arithmetic Coder Decoder
 
 ### Arithmetic coding
 
